@@ -1,0 +1,71 @@
+#!/bin/ruby
+
+require 'octokit'
+require 'tomlrb'
+
+# https://github.com/<user>/<repo>/settings/hooks
+def repo_events_all
+  # events: https://docs.github.com/en/developers/webhooks-and-events/webhooks/webhook-events-and-payloads
+  e = ["create", "delete"]
+  e += ["check_run", "check_suite"]
+  e += ["code_scanning_alert", "member"]
+  e += ["commit_comment", "deploy_key"]
+  e += ["deployment_status", "deployment"]
+  e += ["discussion_comment", "discussion"]
+  e += ["fork", "issue_comment"]
+  e += ["issues", "label"]
+  e += ["meta", "milestone"]
+  e += ["package", "page_build"]
+  e += ["project_card", "project_column"]
+  e += ["project", "pull_request_review_comment"]
+  e += ["pull_request_review_thread", "pull_request_review"]
+  e += ["pull_request", "push"]
+  e += ["release"]
+  e += ["repository", "repository_import"]
+  e += ["repository_vulnerability_alert", "secret_scanning_alert"]
+  e += ["star", "status"]
+  e += ["team_add", "public"]
+  e += ["watch", "gollum"]
+
+  e += ["registry_package", "workflow_job"] # undocumented?
+  return e
+end
+
+def create_hook(client, repo, webhook, events)
+  client.create_hook(
+    repo,
+    'web',
+    {
+      :url => webhook,
+      :content_type => 'json'
+    },
+    {
+      :events => events,
+      :active => true
+    }
+  )
+end
+
+repo = ARGV[0]
+webhook = ARGV[1]
+template_names = ARGV[2]
+
+cfg = Tomlrb.load_file('config.toml', symbolize_keys: true)
+#p cfg
+
+events = []
+if template_names == "all"
+  events = repo_events_all()
+else
+  templates = cfg[:template]
+  for tname in template_names.split(',')
+    t = templates[tname.intern]
+    events += t[:events]
+  end
+end
+p events
+
+ptoken = cfg[:github][:access_token]
+client = Octokit::Client.new(:access_token => ptoken)
+#p client.hooks('sksat/papermc-docker')
+create_hook client, repo, webhook, events

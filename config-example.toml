@@ -1,0 +1,8 @@
+[github]
+access_token = 'ghp_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX'
+
+[template.activity]
+events = ["code_scanning_alert", "member", "commit_comment", "fork", "issue_comment", "issues", "package", "pull_request", "pull_request_review", "pull_request_review_comment", "pull_request_review_thread", "push", "release", "secret_scanning_alert", "star", "watch"]
+
+[template.ci]
+events = ["check_run", "workflow_job"]
