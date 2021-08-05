@@ -47,25 +47,35 @@ def create_hook(client, repo, webhook, events)
 end
 
 repo = ARGV[0]
-webhook = ARGV[1]
-template_names = ARGV[2]
+template_names = ARGV[1]
+default_webhook = ARGV[2]
 
 cfg = Tomlrb.load_file('config.toml', symbolize_keys: true)
 #p cfg
 
-events = []
-if template_names == "all"
-  events = repo_events_all()
-else
-  templates = cfg[:template]
-  for tname in template_names.split(',')
-    t = templates[tname.intern]
-    events += t[:events]
-  end
-end
-p events
-
 ptoken = cfg[:github][:access_token]
 client = Octokit::Client.new(:access_token => ptoken)
 #p client.hooks('sksat/papermc-docker')
-create_hook client, repo, webhook, events
+
+if template_names == "all"
+  events = repo_events_all()
+  create_hook client, repo, default_webhook, events
+else
+  templates = cfg[:template]
+  events = []
+  for tname in template_names.split(',')
+    t = templates[tname.intern]
+    e = t[:events]
+    whook = t[:webhook]
+    if whook != nil && !whook.empty?
+      #p whook
+      create_hook client, repo, whook, e
+    end
+    events += e
+  end
+
+  if default_webhook != nil
+    p events
+    create_hook client, repo, default_webhook, events
+  end
+end
