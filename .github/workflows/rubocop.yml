@@ -1,5 +1,13 @@
 name: reviewdog
-on: [pull_request]
+
+on:
+  pull_request:
+    paths:
+      - 'hubhook'
+      - 'Gemfile'
+      - 'Gemfile.lock'
+      - '~/.github/workflows/rubocop.yml'
+
 jobs:
   rubocop:
     name: runner / rubocop
