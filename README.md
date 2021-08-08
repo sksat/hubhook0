@@ -1,7 +1,7 @@
 # hubhook
-
 ![release](https://img.shields.io/github/v/release/sksat/hubhook?sort=semver)
 ![license](https://img.shields.io/github/license/sksat/hubhook)
+[![Build Container Image](https://github.com/sksat/hubhook/actions/workflows/build-image.yml/badge.svg)](https://github.com/sksat/hubhook/actions/workflows/build-image.yml)
 ![image version](https://img.shields.io/docker/v/sksat/hubhook?label=image%20version&sort=semver)
 ![image size](https://img.shields.io/docker/image-size/sksat/hubhook?sort=semver)
 ![docker pull](https://img.shields.io/docker/pulls/sksat/hubhook)
