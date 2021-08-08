@@ -1,7 +1,10 @@
 #!/bin/ruby
 
+require 'optparse'
 require 'octokit'
 require 'tomlrb'
+
+Version = "0.2.0"
 
 # https://github.com/<user>/<repo>/settings/hooks
 def repo_events_all
@@ -46,36 +49,94 @@ def create_hook(client, repo, webhook, events)
   )
 end
 
-repo = ARGV[0]
-template_names = ARGV[1]
-default_webhook = ARGV[2]
+# subcommand create
+def create(cfg, client, repo, template_names, default_webhook)
+  if template_names == "all"
+    events = repo_events_all()
+    create_hook client, repo, default_webhook, events
+  else
+    templates = cfg[:template]
+    events = []
+    for tname in template_names.split(',')
+      t = templates[tname.intern]
+      e = t[:events]
+      whook = t[:webhook]
+      if whook != nil && !whook.empty?
+        #p whook
+        create_hook client, repo, whook, e
+      end
+      events += e
+    end
 
-cfg = Tomlrb.load_file('config.toml', symbolize_keys: true)
+    if default_webhook != nil
+      p events
+      create_hook client, repo, default_webhook, events
+    end
+  end
+end
+
+# parse option
+
+# default params
+params = {:config => "config.toml"}
+
+subhelp = <<HELP
+subcommands:
+    create:   create webhook
+HELP
+
+opt = OptionParser.new do |o|
+  o.banner = "Usage: hubhook [options] [subcommand [options]]"
+
+  o.on('-c VAL', '--config', "config file(default: #{params[:config]})"){|v| v}
+
+  o.separator ""
+  o.separator subhelp
+end
+
+subcmd = {
+  'create' => OptionParser.new do |o|
+    o.banner = "Usage: create [repo] [template_names]"
+  end
+}
+
+
+#subcmd = Hash.new{|h,k|
+#  $stderr.puts "no such subcommand: #{k}"
+#  exit 1
+#}
+
+opt.order!(ARGV, into: params)
+sub =  ARGV.shift
+if subcmd[sub] == nil
+  $stderr.puts "no such subcommand: #{sub}"
+  exit 1
+end
+subcmd[sub].parse!(ARGV)
+
+#p ARGV
+#p params
+
+repo = ARGV.shift
+if repo == nil
+  $stderr.puts "repo is null!"
+  exit 1
+end
+
+# load config
+cfg = Tomlrb.load_file(params[:config], symbolize_keys: true)
 #p cfg
-
 ptoken = cfg[:github][:access_token]
 client = Octokit::Client.new(:access_token => ptoken)
 #p client.hooks('sksat/papermc-docker')
 
-if template_names == "all"
-  events = repo_events_all()
-  create_hook client, repo, default_webhook, events
-else
-  templates = cfg[:template]
-  events = []
-  for tname in template_names.split(',')
-    t = templates[tname.intern]
-    e = t[:events]
-    whook = t[:webhook]
-    if whook != nil && !whook.empty?
-      #p whook
-      create_hook client, repo, whook, e
-    end
-    events += e
-  end
+if sub == 'create'
+  template_names = ARGV.shift
+  default_webhook = ARGV.shift
 
-  if default_webhook != nil
-    p events
-    create_hook client, repo, default_webhook, events
+  if template_names == nil
+    puts "error: template_names is nil !"
+    exit 1
   end
+  create cfg, client, repo, template_names, default_webhook
 end
