@@ -1,34 +1,51 @@
-#!/bin/ruby
+#!/usr/bin/env ruby
 
+require 'optparse'
 require 'octokit'
 require 'tomlrb'
+
+Version = '0.2.0'
 
 # https://github.com/<user>/<repo>/settings/hooks
 def repo_events_all
   # events: https://docs.github.com/en/developers/webhooks-and-events/webhooks/webhook-events-and-payloads
-  e = ["create", "delete"]
-  e += ["check_run", "check_suite"]
-  e += ["code_scanning_alert", "member"]
-  e += ["commit_comment", "deploy_key"]
-  e += ["deployment_status", "deployment"]
-  e += ["discussion_comment", "discussion"]
-  e += ["fork", "issue_comment"]
-  e += ["issues", "label"]
-  e += ["meta", "milestone"]
-  e += ["package", "page_build"]
-  e += ["project_card", "project_column"]
-  e += ["project", "pull_request_review_comment"]
-  e += ["pull_request_review_thread", "pull_request_review"]
-  e += ["pull_request", "push"]
-  e += ["release"]
-  e += ["repository", "repository_import"]
-  e += ["repository_vulnerability_alert", "secret_scanning_alert"]
-  e += ["star", "status"]
-  e += ["team_add", "public"]
-  e += ["watch", "gollum"]
+  e = %w[create delete]
+  e += %w[check_run check_suite]
+  e += %w[code_scanning_alert member]
+  e += %w[commit_comment deploy_key]
+  e += %w[deployment_status deployment]
+  e += %w[discussion_comment discussion]
+  e += %w[fork issue_comment]
+  e += %w[issues label]
+  e += %w[meta milestone]
+  e += %w[package page_build]
+  e += %w[project_card project_column]
+  e += %w[project pull_request_review_comment]
+  e += %w[pull_request_review_thread pull_request_review]
+  e += %w[pull_request push]
+  e += ['release']
+  e += %w[repository repository_import]
+  e += %w[repository_vulnerability_alert secret_scanning_alert]
+  e += %w[star status]
+  e += %w[team_add public]
+  e += %w[watch gollum]
 
-  e += ["registry_package", "workflow_job"] # undocumented?
-  return e
+  e += %w[registry_package workflow_job] # undocumented?
+  e
+end
+
+def get_config(search_dirs, fname)
+  path = ''
+  search_dirs.split(';').each do |dir|
+    path = dir + '/' + fname
+    break if File.exist?(path)
+
+    warn 'config file does not exist!'
+    exit 1
+  end
+
+  # puts "config file: #{path}"
+  Tomlrb.load_file(path, symbolize_keys: true)
 end
 
 def create_hook(client, repo, webhook, events)
@@ -36,46 +53,102 @@ def create_hook(client, repo, webhook, events)
     repo,
     'web',
     {
-      :url => webhook,
-      :content_type => 'json'
+      url: webhook,
+      content_type: 'json'
     },
     {
-      :events => events,
-      :active => true
+      events: events,
+      active: true
     }
   )
 end
 
-repo = ARGV[0]
-template_names = ARGV[1]
-default_webhook = ARGV[2]
-
-cfg = Tomlrb.load_file('config.toml', symbolize_keys: true)
-#p cfg
-
-ptoken = cfg[:github][:access_token]
-client = Octokit::Client.new(:access_token => ptoken)
-#p client.hooks('sksat/papermc-docker')
-
-if template_names == "all"
-  events = repo_events_all()
-  create_hook client, repo, default_webhook, events
-else
-  templates = cfg[:template]
-  events = []
-  for tname in template_names.split(',')
-    t = templates[tname.intern]
-    e = t[:events]
-    whook = t[:webhook]
-    if whook != nil && !whook.empty?
-      #p whook
-      create_hook client, repo, whook, e
-    end
-    events += e
-  end
-
-  if default_webhook != nil
-    p events
+# subcommand create
+def create(cfg, client, repo, template_names, default_webhook)
+  if template_names == 'all'
+    events = repo_events_all
     create_hook client, repo, default_webhook, events
+  else
+    templates = cfg[:template]
+    events = []
+    template_names.split(',').each do |tname|
+      t = templates[tname.intern]
+      e = t[:events]
+      whook = t[:webhook]
+      if !whook.nil? && !whook.empty?
+        # p whook
+        create_hook client, repo, whook, e
+      end
+      events += e
+    end
+
+    unless default_webhook.nil?
+      p events
+      create_hook client, repo, default_webhook, events
+    end
   end
+end
+
+# parse option
+
+# default params
+params = {
+  search: '.;~/config/hubhook',
+  config: 'config.toml'
+}
+
+subhelp = <<~HELP
+  subcommands:
+      create:   create webhook
+HELP
+
+opt = OptionParser.new do |o|
+  o.banner = 'Usage: hubhook [options] [subcommand [options]]'
+
+  o.on('-S VAL', '--search', "config file search path(default: #{params[:search]})") { |v| v }
+  o.on('-c VAL', '--config', "config file(default: #{params[:config]})") { |v| v }
+
+  o.separator ''
+  o.separator subhelp
+end
+
+subcmd = {
+  'create' => OptionParser.new do |o|
+    o.banner = 'Usage: create [repo] [template_names]'
+  end
+}
+
+opt.order!(ARGV, into: params)
+sub = ARGV.shift
+if subcmd[sub].nil?
+  warn "no such subcommand: #{sub}"
+  exit 1
+end
+subcmd[sub].parse!(ARGV)
+
+# p ARGV
+# p params
+
+repo = ARGV.shift
+if repo.nil?
+  warn 'repo is null!'
+  exit 1
+end
+
+# load config
+cfg = get_config(params[:search], params[:config])
+# p cfg
+ptoken = cfg[:github][:access_token]
+client = Octokit::Client.new(access_token: ptoken)
+# p client.hooks('sksat/papermc-docker')
+
+if sub == 'create'
+  template_names = ARGV.shift
+  default_webhook = ARGV.shift
+
+  if template_names.nil?
+    puts 'error: template_names is nil !'
+    exit 1
+  end
+  create cfg, client, repo, template_names, default_webhook
 end

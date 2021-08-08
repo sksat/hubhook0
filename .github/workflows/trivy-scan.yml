@@ -1,0 +1,23 @@
+name: Daily Container Image Vulnerability Scan
+
+on:
+  schedule:
+    - cron: '0 15 * * *'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Image tag'
+        required: true
+        default: 'main'
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Pull image
+        run: docker pull ghcr.io/sksat/hubhook:${{ github.event.inputs.tag || 'main' }}
+
+      - uses: lazy-actions/gitrivy@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          image: ghcr.io/sksat/hubhook:main
