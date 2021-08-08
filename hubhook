@@ -95,8 +95,8 @@ end
 
 # default params
 params = {
-  :search => ".;~/config/hubhook",
-  :config => "config.toml"
+  :search => '.;~/config/hubhook',
+  :config => 'config.toml'
 }
 
 subhelp = <<HELP
@@ -116,7 +116,7 @@ end
 
 subcmd = {
   'create' => OptionParser.new do |o|
-    o.banner = "Usage: create [repo] [template_names]"
+    o.banner = 'Usage: create [repo] [template_names]'
   end
 }
 
@@ -133,12 +133,11 @@ subcmd[sub].parse!(ARGV)
 
 repo = ARGV.shift
 if repo == nil
-  $stderr.puts "repo is null!"
+  $stderr.puts 'repo is null!'
   exit 1
 end
 
 # load config
-search_dirs = ".,~/config/hubhook"
 cfg = get_config(params[:search], params[:config])
 #p cfg
 ptoken = cfg[:github][:access_token]
@@ -150,7 +149,7 @@ if sub == 'create'
   default_webhook = ARGV.shift
 
   if template_names == nil
-    puts "error: template_names is nil !"
+    puts 'error: template_names is nil !'
     exit 1
   end
   create cfg, client, repo, template_names, default_webhook
