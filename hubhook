@@ -4,48 +4,48 @@ require 'optparse'
 require 'octokit'
 require 'tomlrb'
 
-Version = "0.2.0"
+Version = '0.2.0'
 
 # https://github.com/<user>/<repo>/settings/hooks
 def repo_events_all
   # events: https://docs.github.com/en/developers/webhooks-and-events/webhooks/webhook-events-and-payloads
-  e = ["create", "delete"]
-  e += ["check_run", "check_suite"]
-  e += ["code_scanning_alert", "member"]
-  e += ["commit_comment", "deploy_key"]
-  e += ["deployment_status", "deployment"]
-  e += ["discussion_comment", "discussion"]
-  e += ["fork", "issue_comment"]
-  e += ["issues", "label"]
-  e += ["meta", "milestone"]
-  e += ["package", "page_build"]
-  e += ["project_card", "project_column"]
-  e += ["project", "pull_request_review_comment"]
-  e += ["pull_request_review_thread", "pull_request_review"]
-  e += ["pull_request", "push"]
-  e += ["release"]
-  e += ["repository", "repository_import"]
-  e += ["repository_vulnerability_alert", "secret_scanning_alert"]
-  e += ["star", "status"]
-  e += ["team_add", "public"]
-  e += ["watch", "gollum"]
+  e = ['create', 'delete']
+  e += ['check_run', 'check_suite']
+  e += ['code_scanning_alert', 'member']
+  e += ['commit_comment', 'deploy_key']
+  e += ['deployment_status', 'deployment']
+  e += ['discussion_comment', 'discussion']
+  e += ['fork', 'issue_comment']
+  e += ['issues', 'label']
+  e += ['meta', 'milestone']
+  e += ['package', 'page_build']
+  e += ['project_card', 'project_column']
+  e += ['project', 'pull_request_review_comment']
+  e += ['pull_request_review_thread', 'pull_request_review']
+  e += ['pull_request', 'push']
+  e += ['release']
+  e += ['repository', 'repository_import']
+  e += ['repository_vulnerability_alert', 'secret_scanning_alert']
+  e += ['star', 'status']
+  e += ['team_add', 'public']
+  e += ['watch', 'gollum']
 
-  e += ["registry_package", "workflow_job"] # undocumented?
+  e += ['registry_package', 'workflow_job'] # undocumented?
   return e
 end
 
 def get_config(search_dirs, fname)
-  path = ""
+  path = ''
   for dir in search_dirs.split(';')
     path = dir + '/' + fname
     if File.exist?(path)
       break
     end
-    $stderr.puts "config file does not exist!"
+    $stderr.puts 'config file does not exist!'
     exit 1
   end
 
-  #puts "config file: #{path}"
+  # puts "config file: #{path}"
   cfg = Tomlrb.load_file(path, symbolize_keys: true)
   return cfg
 end
@@ -67,7 +67,7 @@ end
 
 # subcommand create
 def create(cfg, client, repo, template_names, default_webhook)
-  if template_names == "all"
+  if template_names == 'all'
     events = repo_events_all()
     create_hook client, repo, default_webhook, events
   else
@@ -105,12 +105,12 @@ subcommands:
 HELP
 
 opt = OptionParser.new do |o|
-  o.banner = "Usage: hubhook [options] [subcommand [options]]"
+  o.banner = 'Usage: hubhook [options] [subcommand [options]]'
 
   o.on('-S VAL', '--search', "config file search path(default: #{params[:search]})"){|v| v}
   o.on('-c VAL', '--config', "config file(default: #{params[:config]})"){|v| v}
 
-  o.separator ""
+  o.separator ''
   o.separator subhelp
 end
 
