@@ -34,6 +34,22 @@ def repo_events_all
   return e
 end
 
+def get_config(search_dirs, fname)
+  path = ""
+  for dir in search_dirs.split(';')
+    path = dir + '/' + fname
+    if File.exist?(path)
+      break
+    end
+    $stderr.puts "config file does not exist!"
+    exit 1
+  end
+
+  #puts "config file: #{path}"
+  cfg = Tomlrb.load_file(path, symbolize_keys: true)
+  return cfg
+end
+
 def create_hook(client, repo, webhook, events)
   client.create_hook(
     repo,
@@ -78,7 +94,10 @@ end
 # parse option
 
 # default params
-params = {:config => "config.toml"}
+params = {
+  :search => ".;~/config/hubhook",
+  :config => "config.toml"
+}
 
 subhelp = <<HELP
 subcommands:
@@ -88,6 +107,7 @@ HELP
 opt = OptionParser.new do |o|
   o.banner = "Usage: hubhook [options] [subcommand [options]]"
 
+  o.on('-S VAL', '--search', "config file search path(default: #{params[:search]})"){|v| v}
   o.on('-c VAL', '--config', "config file(default: #{params[:config]})"){|v| v}
 
   o.separator ""
@@ -99,12 +119,6 @@ subcmd = {
     o.banner = "Usage: create [repo] [template_names]"
   end
 }
-
-
-#subcmd = Hash.new{|h,k|
-#  $stderr.puts "no such subcommand: #{k}"
-#  exit 1
-#}
 
 opt.order!(ARGV, into: params)
 sub =  ARGV.shift
@@ -124,7 +138,8 @@ if repo == nil
 end
 
 # load config
-cfg = Tomlrb.load_file(params[:config], symbolize_keys: true)
+search_dirs = ".,~/config/hubhook"
+cfg = get_config(params[:search], params[:config])
 #p cfg
 ptoken = cfg[:github][:access_token]
 client = Octokit::Client.new(:access_token => ptoken)
