@@ -26,6 +26,7 @@ GEM
     octokit (4.21.0)
       faraday (>= 0.9)
       sawyer (~> 0.8.0, >= 0.5.3)
+    optparse (0.1.1)
     public_suffix (4.0.6)
     ruby2_keywords (0.0.5)
     sawyer (0.8.2)
@@ -38,7 +39,8 @@ PLATFORMS
 
 DEPENDENCIES
   octokit (~> 4.0)
+  optparse
   tomlrb
 
 BUNDLED WITH
-   2.2.24
+   2.2.25
