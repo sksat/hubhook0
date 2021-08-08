@@ -34,8 +34,6 @@ def repo_events_all
   e
 end
 
-p repo_events_all()
-
 def get_config(search_dirs, fname)
   path = ''
   search_dirs.split(';').each do |dir|
